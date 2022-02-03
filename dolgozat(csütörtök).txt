@@ -1,0 +1,153 @@
+REST API
+	Előre megkezdett angular -(cserélhető)
+	
+	-composer install (mappába)
+
+	.env
+	átírni :DB_DATABASE=...
+		DB_USERNAME=...
+
+	-adatbázis létrehozása (.sql) egy külsöbb mappába
+
+	phpmyadminba:
+		create database anghum
+		character set utf8
+		collate utf8_hungarian_ci;
+
+		grant all privileges
+		on anghum.*
+		to anghum@localhost
+		idenitified by 'titok';
+	
+	apiban lévő ... mappába
+	php artisan migrate
+	php artisan key:generate
+
+	Insomnia->create->új kollekció
+	http://localhost:8000/api/...
+
+====================================================================================
+
+	routes - api.php 
+	Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    	return $request->user();
+	});
+	
+	Route::get('employees', [EmployeeController::class, 'index']);
+	
+	Route::group(['middleware' => ['auth:sanctum']], function () {
+  	  Route::post('/employee', [EmployeeController::class, 'store']);
+  	  Route::put('/employee/{id}', [EmployeeController::class, 'update']);
+  	  Route::delete('/employee/{id}', [EmployeeController::class, 'destroy']);        
+	});
+	
+	Route::post('/register', [AuthController::class, 'register']);
+	Route::post('/login', [AuthController::class, 'login']);
+
+===========================================================================
+web mappába cmd- ng new ...
+			cd ...
+			ng g c login
+-----------------------------------------------------------------------------------
+web - anghum - app.module.ts
+
+import { NgModule } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { BrowserModule } from '@angular/platform-browser';
+import {HttpClientModule} from '@angular/common/http';
+
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { LoginComponent } from './login/login.component';
+
+@NgModule({
+  declarations: [
+    AppComponent,
+    LoginComponent
+  ],
+  imports: [
+    BrowserModule,
+    AppRoutingModule,
+    ReactiveFormsModule,
+    HttpClientModule
+  ],
+  providers: [],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+	
+	terminál: ng g s shared/auth
+
+	src - shared -auth.service.ts
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { LoginComponent } from '../login/login.component';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+  host = 'http://localhost:8000/api/'
+  constructor(private http: HttpClient) { }
+    login(user: string, pass: string) {
+    let endpoint = 'login';
+    let url = this.host + endpoint;
+    let authObj = {
+      name: user,
+      password: pass
+      }
+    let data = JSON.stringify(authObj);
+    let headerObj = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    let header = {
+      headers: headerObj
+    }
+    return this.http.post<any>(url, data, header);
+  }
+}
+-----------------------------------------------------------------------------------
+sec-app-login-login.components.ts
+---------------------------------
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
+import { AuthService } from '../shared/auth.service';
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.css']
+})
+export class LoginComponent implements OnInit {
+
+  loginForm! : FormGroup;
+  constructor(
+    private auth: AuthService,
+    private formBuilder:FormBuilder
+    ) { }
+
+  ngOnInit(): void {
+    this.loginForm = this.formBuilder.group({
+      user: [''],
+      pass: ['']
+    })
+  }
+
+login(){
+  let user = this.loginForm.value.user;
+  let pass = this.loginForm.value.pass;
+  let res = this.auth.login(user ,pass).subscribe (res =>{
+    console.log(res);
+  });
+  }
+}
+-------------------------------------------------------------------
+terminal:
+---------
+	ng serve -o
+
+--------------------------------------------------------------------------
+src-app-app.component.html
+--------------------------
+<h1>Anghum dolgozók</h1>
+<app-login></app-login>
